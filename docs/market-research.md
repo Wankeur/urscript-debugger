@@ -1,23 +1,23 @@
-# Étude de marché — niche robotique industrielle
+# Market research — industrial robotics niche
 
-Suite à l'étude de marché PLC (voir le projet `plc-code-bridge`, où un concurrent gratuit direct a été trouvé sur l'idée de conversion de code inter-marques), cette recherche s'est orientée côté robotique, avec vérification systématique de la concurrence pour chaque piste avant de la retenir.
+Following the PLC market research (see the `plc-code-bridge` project, where a direct free competitor was found for the cross-brand code conversion idea), this research shifted to robotics, systematically checking for competition on each lead before keeping it.
 
-## Pistes évaluées
+## Leads evaluated
 
-**1. Portabilité de programmes robots entre marques (RAPID/KRL/TP/URScript) — écartée.**
-Aucune conversion inter-marques automatique ne semble exister, mais pour une raison structurelle et non une opportunité : les instructions de mouvement dépendent de la cinématique physique du robot (géométrie, singularités, conventions d'outil). Une mauvaise conversion peut produire des trajectoires dangereuses. Risque élevé, valeur incertaine.
+**1. Cross-brand robot program portability (RAPID/KRL/TP/URScript) — dropped.**
+No automatic cross-brand conversion seems to exist, but for a structural reason rather than an opportunity: motion instructions depend on the robot's physical kinematics (geometry, singularities, tool conventions). A bad conversion can produce dangerous trajectories. High risk, uncertain value.
 
-**2. IDE/débogueur pour URScript (Universal Robots) — retenue.**
-Demande réelle et récurrente sur plusieurs années sur le forum officiel UR ("URScript IDE for writing and debugging", "Breakpoint in debugging URScript"). Concurrence vérifiée et confirmée faible : seulement une extension VS Code de coloration syntaxique (`ahern.urscript`) et un projet open source d'exécution headless (`Hirebotics/urscript-tools`) — aucun outil avec débogage pas-à-pas/breakpoints. Universal Robots a le plus gros parc de cobots installés au monde.
+**2. IDE/debugger for URScript (Universal Robots) — kept.**
+Real, recurring demand over several years on the official UR forum ("URScript IDE for writing and debugging", "Breakpoint in debugging URScript"). Competition checked and confirmed weak: only a syntax-highlighting VS Code extension (`ahern.urscript`) and an open-source headless execution project (`Hirebotics/urscript-tools`) — no tool with step debugging/breakpoints. Universal Robots has the largest installed base of cobots in the world.
 
-**3. Simulation/programmation hors-ligne de cellules robotisées — écartée.**
-RoboDK (1800-5000$ perpétuel) domine déjà ce marché aux côtés d'OCTOPUZ, SprutCAM X Robot, RoboCell, RobotWorks. Marché établi, déjà bien pourvu en concurrents sérieux.
+**3. Offline simulation/programming of robot cells — dropped.**
+RoboDK ($1,800-5,000 perpetual) already dominates this market alongside OCTOPUZ, SprutCAM X Robot, RoboCell, RobotWorks. Established market, already well-served by serious competitors.
 
-**4. Conformité PackML — confirmée faible.**
-Douleur réelle documentée (thread P&G sur des implémentations peu robustes) mais MathWorks propose déjà un produit PackML dans Simulink (vérification de machine à états + génération de tests). Incumbent majeur déjà en place.
+**4. PackML compliance — confirmed weak.**
+Real, documented pain point (a P&G thread about brittle implementations) but MathWorks already offers a PackML product in Simulink (state-machine verification + test generation). Major incumbent already in place.
 
-**5. Signal freelance (Upwork)** : ~2980 offres "Automation" et 48 "PLC Programming" — demande de service réelle mais trop générique pour pointer vers un produit précis.
+**5. Freelance signal (Upwork)**: ~2,980 "Automation" listings and 48 "PLC Programming" — real service demand but too generic to point to a specific product.
 
-## Décision
+## Decision
 
-Produit retenu : **IDE/débogueur URScript pour Universal Robots**, seule piste combinant demande documentée et récurrente, absence confirmée de concurrent dominant, parc installé massif, et faisabilité solo réaliste.
+Product chosen: **URScript IDE/debugger for Universal Robots**, the only lead combining documented, recurring demand, confirmed absence of a dominant competitor, a massive installed base, and realistic solo feasibility.

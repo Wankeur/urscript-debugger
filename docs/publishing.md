@@ -1,45 +1,40 @@
-# Publication sur le VS Code Marketplace
+# Publishing to the VS Code Marketplace
 
-Trois choses nécessitent ton compte personnel — je ne peux pas les faire à ta place.
+Three things require your personal account — I can't do them for you.
 
-## 1. Créer un "publisher" Marketplace
+## 1. Create a Marketplace "publisher"
 
-1. Va sur https://marketplace.visualstudio.com/manage (connexion avec un compte Microsoft).
-2. "Create publisher" — choisis un identifiant (ex: `radermacker` ou le nom de ta future entreprise). C'est cet identifiant qu'il faudra me donner pour le champ `publisher` de `package.json`.
+1. Go to https://marketplace.visualstudio.com/manage (sign in with a Microsoft account).
+2. "Create publisher" — pick an ID (e.g. your name or your future company's name). That's the ID you give me for the `publisher` field in `package.json`.
 
-## 2. Créer un token d'accès (PAT)
+Note: if it asks for a domain to verify your identity, that's **optional** — it's only for the "Verified" badge, and Microsoft requires 6 months of history anyway before you'd even qualify. Skip it for now.
 
-1. Va sur https://dev.azure.com, connecte-toi avec le même compte Microsoft.
-2. Icône utilisateur (en haut à droite) → "Personal access tokens" → "New Token".
-3. Organisation : "All accessible organizations". Scope : "Marketplace" → coche "Manage".
-4. Copie le token généré (il ne sera plus affiché après).
+## 2. Create an access token (PAT)
 
-**Ne me colle jamais ce token dans le chat.** Ajoute-le plutôt à ton `~/.bashrc` (ou `~/.profile`) :
+1. Go to https://dev.azure.com, sign in with the same Microsoft account (create an Azure DevOps organization first if prompted — any name works, it's just a required container).
+2. User icon (top right) → "Personal access tokens" → "New Token".
+3. Organization: "All accessible organizations". Scopes: "Custom defined" → find "Marketplace" → check "Manage".
+4. Copy the generated token (it won't be shown again).
 
-```bash
-echo 'export VSCE_PAT="colle_ton_token_ici"' >> ~/.bashrc
-source ~/.bashrc
-```
+**Never paste this token into the chat.** In practice, in this environment, sharing secrets via `~/.bashrc` exports turned out to be unreliable — the assistant's shell doesn't always pick up profile exports the way you'd expect, and troubleshooting it (grepping the file to check) can itself leak the value into the conversation by accident. **The safer, actually-reliable approach: run the publish command yourself, in your own terminal**, so the token never has to leave your machine or pass through the chat at all (see step 4).
 
-Comme mon environnement shell se charge depuis ton profil à chaque commande, je pourrai ensuite lancer `vsce publish -p "$VSCE_PAT"` sans jamais voir la valeur réelle dans la conversation — même principe que pour les clés API Bybit.
+## 3. Create the remote Git repository
 
-## 3. Créer le dépôt Git distant
+1. Create an **empty** repository on GitHub (or GitLab/other) — don't check "Initialize with README".
+2. Give me the URL (e.g. `https://github.com/your-account/urscript-debugger.git`), I'll push the code to it and update `repository` in `package.json`.
 
-1. Crée un dépôt **vide** sur GitHub (ou GitLab/autre) — ne pas cocher "Initialize with README".
-2. Donne-moi l'URL (ex: `https://github.com/ton-compte/urscript-debugger.git`), je pousse le code dessus et je mets à jour le `repository` dans `package.json`.
+## 4. Publish
 
-## 4. Publier
-
-Une fois les trois étapes ci-dessus faites, la commande est :
+Once the three steps above are done:
 
 ```bash
 cd extension
-npx @vscode/vsce publish
+npx @vscode/vsce publish -p <your-token>
 ```
 
-`vsce` lit automatiquement `VSCE_PAT` depuis l'environnement — pas besoin de le passer en argument si tu as suivi l'étape 2. Je peux lancer cette commande moi-même à ce moment-là, puisque le token ne transite jamais par la conversation.
+Run this **yourself**, in your own terminal — that's the cleanest way given the environment-sharing caveat above. I'll have already prepared and verified everything else (compiled, packaged, tested) beforehand, so this final command is the only thing you need to run.
 
-## Après la première publication
+## After the first publish
 
-- Chaque nouvelle version : changer `version` dans `package.json` (semver), puis relancer `vsce publish` (ou `vsce publish patch`/`minor`/`major` pour incrémenter automatiquement).
-- La page Marketplace de l'extension devient : `https://marketplace.visualstudio.com/items?itemName=<publisher>.urscript-debugger`.
+- Each new version: change `version` in `package.json` (semver), then run `vsce publish` again (or `vsce publish patch`/`minor`/`major` to bump it automatically).
+- The extension's Marketplace page becomes: `https://marketplace.visualstudio.com/items?itemName=<publisher>.urscript-debugger`.

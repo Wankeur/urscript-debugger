@@ -1,44 +1,44 @@
-# Analyse de faisabilité technique
+# Technical feasibility analysis
 
-## Interfaces réseau du contrôleur UR / URSim
+## UR controller / URSim network interfaces
 
-- **Dashboard Server (29999)** : commandes `play`/`pause`/`stop`/`load`. Le `pause` ne suspend pas proprement l'exécution d'un script en cours — confirmé par un utilisateur du forum officiel ("le robot ne sait plus quoi exécuter, il a tué la dernière ligne de script"). Pas utilisable tel quel pour du débogage fiable.
-- **Primary (30001) / Secondary (30002)** : 10 Hz, envoi de commandes URScript et retour d'état robot.
-- **Realtime (30003)** : 500 Hz, écriture uniquement, sans accusé de réception fiable.
-- **RTDE (30004)** : registres d'entrée/sortie configurables à fréquence de contrôle — bon canal de télémétrie continue, mais nombre de registres limité, pas taillé pour inspecter un nombre arbitraire de variables utilisateur.
+- **Dashboard Server (29999)**: `play`/`pause`/`stop`/`load` commands. `pause` does not properly suspend a running script — confirmed by a user on the official forum ("the robot doesn't know what to execute anymore, it killed the last line of the script"). Not usable as-is for reliable debugging.
+- **Primary (30001) / Secondary (30002)**: 10 Hz, sends URScript commands and returns robot state.
+- **Realtime (30003)**: 500 Hz, write-only, no reliable acknowledgment.
+- **RTDE (30004)**: configurable input/output registers at control-loop frequency — a good continuous telemetry channel, but a limited number of registers, not sized for inspecting an arbitrary number of user variables.
 
-## Pas de pause/reprise native pour du script brut — confirmé, avec une nuance importante
+## No native pause/resume for raw script — confirmed, with an important nuance
 
-PolyScope a des breakpoints natifs sur les nœuds du programme graphique depuis la v5.6.x.x, mais un utilisateur du forum officiel confirme explicitement qu'il n'y a aucun moyen d'appliquer ça à un fichier script. Le gap réel est précis : **aucun débogage pour du URScript écrit/envoyé en texte brut**, pas "aucun débogage UR" en général.
+PolyScope has had native breakpoints on graphical program nodes since v5.6.x.x, but a user on the official forum explicitly confirms there's no way to apply that to a script file. The real gap is precise: **no debugging for URScript written/sent as raw text**, not "no UR debugging" in general.
 
-Un utilisateur de ce même forum a déjà bricolé la solution manuellement : une fonction `breakPoint()` maison utilisant `socket_open` vers un serveur local pour suspendre l'exécution sur commande. Ça valide directement l'architecture retenue ci-dessous comme idiome déjà découvert par la communauté, juste jamais packagé proprement en outil.
+A user on that same forum already hand-rolled the solution manually: a homemade `breakPoint()` function using `socket_open` to a local server to suspend execution on command. This directly validates the architecture chosen below as an idiom already discovered by the community, just never packaged properly into a tool.
 
-Source : [Breakpoint in debugging URScript (forum UR officiel)](https://forum.universal-robots.com/t/breakpoint-in-debugging-urscript/7469)
+Source: [Breakpoint in debugging URScript (official UR forum)](https://forum.universal-robots.com/t/breakpoint-in-debugging-urscript/7469)
 
 ## Hirebotics/urscript-tools
 
-Exécuteur headless contre URSim en Docker, façon CI (pass/fail) — pas un débogueur interactif, aucune pause/step/inspection. Utile comme infrastructure d'orchestration Docker/URSim à réutiliser ; la logique de débogage reste entièrement à construire.
+A headless executor against URSim in Docker, CI-style (pass/fail) — not an interactive debugger, no pause/step/inspection. Useful as reusable Docker/URSim orchestration infrastructure; the debugging logic still has to be built entirely from scratch.
 
-## Architecture retenue : instrumentation de code + Debug Adapter Protocol
+## Chosen architecture: code instrumentation + Debug Adapter Protocol
 
-**Pourquoi pas un interpréteur URScript réimplémenté** (l'alternative envisagée) : perd toute fidélité dès qu'il y a du mouvement réel (`movej`/`movel` ne se "simulent" pas fidèlement hors du contrôleur/URSim), aucun précédent trouvé pour cette approche sur un langage robot. Écartée.
+**Why not a reimplemented URScript interpreter** (the alternative considered): loses all fidelity as soon as real motion is involved (`movej`/`movel` can't be faithfully "simulated" outside the controller/URSim), and no precedent was found for this approach on a robot language. Dropped.
 
-**Architecture retenue :**
-1. Parser le `.script` utilisateur (parsing syntaxique suffisant pour repérer les frontières d'instructions, pas un moteur sémantique complet) et insérer des appels `breakPoint()` aux lignes marquées.
-2. Avant de bloquer sur le socket, arrêter proprement tout mouvement en cours (`stopl`/`stopj`) — ne pas reproduire le bug du `pause` du Dashboard Server qui gèle au milieu d'un mouvement.
-3. Serveur de rendez-vous externe (Python) qui reçoit la connexion socket, tient la pause, lit/écrit des variables, envoie le signal de reprise.
-4. **Adaptateur DAP (Debug Adapter Protocol)** par-dessus ce serveur : traduit les requêtes standard de VS Code (setBreakpoints, continue, next, variables, evaluate) vers le mécanisme socket. Donne gratuitement toute l'UI de débogage de VS Code, sans rien construire côté interface.
+**Chosen architecture:**
+1. Parse the user's `.script` (syntactic parsing is enough to locate instruction boundaries, no full semantic engine needed) and insert `breakPoint()` calls at the marked lines.
+2. Before blocking on the socket, cleanly stop any motion in progress (`stopl`/`stopj`) — don't reproduce the Dashboard Server's `pause` bug, which freezes mid-motion.
+3. An external (Python) rendezvous server that receives the socket connection, holds the pause, reads/writes variables, and sends the resume signal.
+4. A **DAP (Debug Adapter Protocol) adapter** on top of that server: translates standard VS Code requests (setBreakpoints, continue, next, variables, evaluate) into calls to the socket mechanism. Gives all of VS Code's debugging UI for free, with nothing to build on the interface side.
 
 ## URSim
 
-Images Docker officielles disponibles (`universalrobots/ursim_e-series`, `universalrobots/ursim_cb3`, modèle robot sélectionnable par variable d'environnement). Expose les mêmes interfaces réseau qu'un vrai contrôleur — développement et test entièrement faisables en simulation avant tout accès à un robot réel.
+Official Docker images are available (`universalrobots/ursim_e-series`, `universalrobots/ursim_cb3`, robot model selectable via an environment variable). Exposes the same network interfaces as a real controller — development and testing are entirely feasible in simulation before any access to a real robot.
 
-## Évaluation globale
+## Overall assessment
 
-**Faisabilité : bonne.** Mécanisme central déjà pratiqué informellement par la communauté, testable entièrement sur URSim dockerisé. Prototype fonctionnel (parse + instrumentation + pause/continue + variable basique) réaliste en quelques semaines à temps partiel ; un IDE poli, quelques mois.
+**Feasibility: good.** The core mechanism is already informally practiced by the community, and fully testable on dockerized URSim. A working prototype (parse + instrumentation + pause/continue + basic variable) is realistic within a few weeks part-time; a polished IDE, a few months.
 
-## Risques principaux
+## Main risks
 
-- **Marché plus étroit que "tous les utilisateurs UR"** : la cible réelle est les auteurs de script brut (intégrateurs, utilisateurs ROS/External Control, développeurs d'URCap) — les utilisateurs PolyScope classiques ont déjà des breakpoints natifs depuis la v5.6.
-- **RTDE limité en nombre de registres** — garder le canal socket ad hoc pour l'inspection de variables arbitraires, RTDE pour la télémétrie haute fréquence seulement.
-- **Sécurité du point d'arrêt** : ne jamais bloquer naïvement au milieu d'un mouvement en cours — arrêter proprement (`stopl`/`stopj`) avant de suspendre, sous peine de reproduire le bug du Dashboard Server.
+- **Narrower market than "all UR users"**: the real target is authors of raw script (integrators, ROS/External Control users, URCap developers) — regular PolyScope users already have native breakpoints since v5.6.
+- **RTDE limited in register count** — keep the ad hoc socket channel for arbitrary variable inspection, RTDE for high-frequency telemetry only.
+- **Breakpoint safety**: never naively block mid-motion — cleanly stop (`stopl`/`stopj`) before suspending, or risk reproducing the Dashboard Server bug.

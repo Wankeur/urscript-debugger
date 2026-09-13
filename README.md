@@ -1,101 +1,101 @@
 # urscript-debugger
 
-Extension VS Code apportant un vrai débogueur (points d'arrêt, exécution pas-à-pas, inspection de variables) pour le **URScript brut** (Universal Robots) — ce qui manque aujourd'hui à tous les utilisateurs qui écrivent/envoient du script en dehors de PolyScope (intégrateurs, utilisateurs ROS/External Control, développeurs d'URCaps).
+A VS Code extension bringing a real debugger (breakpoints, step execution, variable inspection) to **raw URScript** (Universal Robots) — something missing today for anyone writing/sending script outside of PolyScope (integrators, ROS/External Control users, URCap developers).
 
-## Contexte
+## Context
 
-Voir `docs/market-research.md` et `docs/feasibility.md`. Résumé :
-- PolyScope a des breakpoints natifs depuis la v5.6, mais **aucun outil ne couvre le URScript brut** (fichiers `.script`, code envoyé par socket).
-- Un utilisateur du forum officiel UR a déjà validé manuellement le mécanisme de base (fonction `breakPoint()` avec rendez-vous socket) — on package et on fiabilise cette idée plutôt que d'inventer quelque chose de non prouvé.
-- URSim (simulateur officiel) tourne en Docker et expose les mêmes interfaces réseau qu'un vrai robot : développement et tests entièrement possibles sans matériel.
+See `docs/market-research.md` and `docs/feasibility.md`. Summary:
+- PolyScope has had native breakpoints since v5.6, but **no tool covers raw URScript** (`.script` files, code sent over a socket).
+- A user on the official UR forum already validated the base mechanism manually (a `breakPoint()` function with a socket rendezvous) — we're packaging and hardening that idea rather than inventing something unproven.
+- URSim (the official simulator) runs in Docker and exposes the same network interfaces as a real robot: development and testing are entirely possible without hardware.
 
 ## Architecture
 
-1. **Instrumentation de code** : on parse le `.script` de l'utilisateur (parsing syntaxique suffisant, pas un moteur sémantique complet) et on insère un appel `checkpoint()` après CHAQUE ligne exécutable du bloc `def program():` (pas seulement les lignes marquées comme breakpoint). Chaque checkpoint demande d'abord au serveur "dois-je m'arrêter ?" (réponse en un octet). Si oui : le robot exécute lui-même `stopj()` (arrêt décéléré contrôlé), confirme au serveur qu'il est physiquement arrêté, et *seulement à ce moment* le serveur informe VS Code — jamais d'annonce "stopped" avant confirmation réelle. Si non : passage instantané, aucun impact sur un mouvement en cours (important pour ne pas casser des mouvements enchaînés avec rayon de raccordement `r=...`).
-2. **Serveur de rendez-vous** : intégré directement dans l'adaptateur DAP (`dap_server.py`), reçoit les connexions socket des `checkpoint()`, décide de suspendre ou laisser passer, tient l'exécution en pause le temps nécessaire, puis envoie le signal de reprise.
-3. **Adaptateur DAP (Debug Adapter Protocol)** : traduit les requêtes standard de VS Code (setBreakpoints, continue, next/stepIn/stepOut, threads, stackTrace, scopes, variables, **setVariable, evaluate**) vers le serveur de rendez-vous. C'est ce qui donne gratuitement toute l'UI de débogage de VS Code (marge de breakpoints, pile d'appels, panneau de variables éditable, boutons pas-à-pas) — aucune interface graphique à construire nous-mêmes.
-4. **Extension VS Code** : déclare le langage URScript (association `.script` minimale pour l'instant — il existe une extension tierce pour la coloration syntaxique complète, `ahern.urscript`, à étudier/potentiellement contribuer plutôt que dupliquer) + enregistre l'adaptateur DAP. Empaquetée en `.vsix` (voir "Packaging").
+1. **Code instrumentation**: the user's `.script` is parsed (syntactic parsing is enough, no full semantic engine needed) and a `checkpoint()` call is inserted after EVERY executable line of the `def program():` block (not just lines marked as breakpoints). Each checkpoint first asks the server "should I stop?" (a one-byte reply). If yes: the robot runs `stopj()` itself (a controlled, decelerated stop), confirms to the server that it's physically stopped, and *only then* does the server notify VS Code — never announcing "stopped" before a real, confirmed stop. If no: instant pass-through, zero impact on any motion in progress (important so as not to break blended moves using a `r=...` radius).
+2. **Rendezvous server**: built directly into the DAP adapter (`dap_server.py`), receives socket connections from `checkpoint()`, decides whether to suspend or pass through, holds execution paused as long as needed, then sends the resume signal.
+3. **DAP adapter (Debug Adapter Protocol)**: translates standard VS Code requests (setBreakpoints, continue, next/stepIn/stepOut, threads, stackTrace, scopes, variables, **setVariable, evaluate**) into calls to the rendezvous server. This is what gives us all of VS Code's debugging UI for free (breakpoint gutter, call stack, editable variables panel, step buttons) — no UI to build ourselves.
+4. **VS Code extension**: declares the URScript language (minimal `.script` association for now — a third-party extension already exists for full syntax highlighting, `ahern.urscript`, worth studying/possibly contributing to rather than duplicating) + registers the DAP adapter. Packaged as a `.vsix` (see "Packaging").
 
-## Fondations réutilisables (ne pas repartir de zéro)
+## Reusable foundations (not reinventing the wheel)
 
-- `universalrobots/ursim_e-series` (Docker officiel) — environnement de test.
-- `Hirebotics/urscript-tools` — orchestration Docker/URSim pour exécution headless, base possible pour l'infra de test.
-- `ahern.urscript` (extension VS Code existante) — coloration syntaxique, à vérifier si réutilisable/contributable avant de dupliquer.
+- `universalrobots/ursim_e-series` (official Docker image) — test environment.
+- `Hirebotics/urscript-tools` — Docker/URSim orchestration for headless execution, a possible base for test infra.
+- `ahern.urscript` (existing VS Code extension) — syntax highlighting, to check for reuse/contribution before duplicating.
 
-## Fonctionnalités validées
+## Validated features
 
-1. ✅ Poser un breakpoint sur une ligne d'un `.script`.
-2. ✅ Lancer le script contre URSim (Docker).
-3. ✅ L'exécution s'arrête proprement à la ligne marquée.
-4. ✅ Voir la valeur des variables locales dans le panneau VS Code (détection automatique par scan des `local X =` précédant la ligne).
-5. ✅ Reprendre l'exécution (continue).
-6. ✅ **Pas-à-pas (step over/into/out)** : avance ligne par ligne même sur des lignes qui ne sont pas des breakpoints explicites, en s'appuyant sur le même mécanisme de checkpoint.
-7. ✅ **Packaging** : l'extension s'empaquette en `.vsix` installable (voir "Packaging").
-8. ✅ **Arrêt sécurisé du mouvement** : `stopj()` déclenché par le robot lui-même uniquement quand une vraie pause est décidée, jamais sur un simple passage — validé avec un script à mouvement réel (deux `movej` enchaînés avec rayon de raccordement).
-9. ✅ **Watch expressions / évaluation** (`evaluate`) : évalue les variables locales connues à l'endroit courant (affichable dans le panneau Watch ou la console de debug). Limite honnête : pas d'expressions arbitraires (URScript n'a pas d'`eval` dynamique) — seules les variables déjà détectées sont évaluables.
-10. ✅ **Édition de variables en direct** (`setVariable`) : modifier une variable numérique dans le panneau Variables affecte réellement l'exécution en cours (testé : changer un compteur en plein milieu d'une boucle court-circuite immédiatement la condition de sortie). Limite honnête : uniquement les valeurs numériques (int/float) pour l'instant — pas de chaînes, listes ou poses.
-11. ✅ **Support multi-fichiers** : plusieurs fichiers `.script` dans un même projet, chacun avec ses propres breakpoints correctement isolés ; un seul fichier est "lancé" à la fois (URScript n'a pas de mécanisme d'inclusion entre fichiers comme un `import`, donc il n'y a pas de notion de "programme qui s'étend sur plusieurs fichiers" à proprement parler — mais un breakpoint posé dans un fichier non lancé n'interfère jamais avec la session active).
+1. ✅ Set a breakpoint on a line of a `.script`.
+2. ✅ Run the script against URSim (Docker).
+3. ✅ Execution stops cleanly at the marked line.
+4. ✅ See the value of local variables in the VS Code panel (automatic detection by scanning `local X =` declarations preceding the line).
+5. ✅ Resume execution (continue).
+6. ✅ **Step over/into/out**: advances line by line even on lines that aren't explicit breakpoints, using the same checkpoint mechanism.
+7. ✅ **Packaging**: the extension packages into an installable `.vsix` (see "Packaging").
+8. ✅ **Safe motion stop**: `stopj()` triggered by the robot itself only when a real pause is decided, never on a simple pass-through — validated with a script containing real motion (two `movej` calls chained with a blend radius).
+9. ✅ **Watch expressions / evaluation** (`evaluate`): evaluates local variables known at the current point (viewable in the Watch panel or debug console). Honest limitation: no arbitrary expressions (URScript has no dynamic `eval`) — only already-detected variables can be evaluated.
+10. ✅ **Live variable editing** (`setVariable`): editing a numeric variable in the Variables panel actually affects the running execution (tested: changing a counter mid-loop immediately short-circuits the exit condition). Honest limitation: numeric values only (int/float) for now — no strings, lists, or poses.
+11. ✅ **Multi-file support**: multiple `.script` files in the same project, each with its own correctly isolated breakpoints; only one file is "launched" at a time (URScript has no cross-file inclusion mechanism like an `import`, so there's no real notion of "a program spanning multiple files" — but a breakpoint set in a file that isn't launched never interferes with the active session).
 
-**Validé de quatre façons, du plus bas niveau au plus réaliste :**
-- `tests/test_dap_flow.py` simule un client DAP simplifié contre un vrai URSim — validation rapide de la logique serveur (script sans mouvement).
-- `tests/test_motion_safety.py` — même principe mais avec un script qui bouge réellement le robot (`test-scripts/motion_test.script`) : vérifie que le statut de sécurité reste `NORMAL` pendant toute la durée de la pause (3s, deux fois), preuve qu'aucun fault/arrêt protecteur n'est déclenché par notre `stopj()`, même en interrompant un mouvement en cours de raccordement.
-- `extension/src/test/suite/debug.test.ts` pilote une **vraie fenêtre VS Code** (via `@vscode/test-electron`) : breakpoints posés par l'API réelle, clics "Continue"/"Step Over" via les vraies commandes, capture de tout le trafic DAP échangé. **5 scénarios** couverts : breakpoints consécutifs, échec propre si le port est occupé, pas-à-pas ligne par ligne, édition de variable en direct, isolation multi-fichiers.
-- Validation manuelle dans l'éditeur VS Code par l'utilisateur, en complément si souhaité — voir "Comment tester" ci-dessous.
+**Validated four ways, from the lowest level to the most realistic:**
+- `tests/test_dap_flow.py` simulates a simplified DAP client against a real URSim — fast validation of the server logic (motionless script).
+- `tests/test_motion_safety.py` — same idea but with a script that actually moves the robot (`test-scripts/motion_test.script`): checks that the safety status stays `NORMAL` for the whole duration of the pause (3s, twice), proving no fault/protective stop is triggered by our `stopj()`, even when interrupting a move mid-blend.
+- `extension/src/test/suite/debug.test.ts` drives a **real VS Code window** (via `@vscode/test-electron`): breakpoints set through the real API, "Continue"/"Step Over" clicks through the real commands, capturing the full DAP traffic. **5 scenarios** covered: consecutive breakpoints, clean failure when the port is busy, line-by-line stepping, live variable editing, multi-file isolation.
+- Manual validation in the VS Code editor by the user, as an optional extra — see "How to test" below.
 
-**Bugs trouvés et corrigés grâce aux tests E2E réels (2026-09-13) :**
-- Un port de rendez-vous déjà occupé par une session précédente mal arrêtée faisait échouer `_start_program` silencieusement — aucune erreur ne remontait à VS Code. Corrigé : l'erreur remonte maintenant via un événement `output` explicite + `terminated`, avec test de non-régression.
-- La détection de fin de programme par **sondage périodique du dashboard** ratait les scripts rapides (tout le programme peut s'exécuter en moins de 50ms, avant même le premier sondage) — remplacé par un **signal explicite envoyé par le script lui-même juste avant sa fin**, déterministe et instantané, plus de dépendance au timing.
-- Une connexion de checkpoint malformée (résidu d'une session précédente pas complètement arrêtée) faisait planter **toute** la boucle de rendez-vous au lieu d'être simplement ignorée — isolé dans un traitement par connexion avec sa propre gestion d'erreur.
-- À la déconnexion d'une session, le programme robot n'était pas explicitement arrêté côté contrôleur, pouvant laisser un script tourner et perturber la session suivante — corrigé (`dashboard stop` explicite au nettoyage).
+**Bugs found and fixed thanks to real E2E tests (2026-09-13):**
+- A rendezvous port already held by a previous, improperly stopped session made `_start_program` fail silently — no error ever reached VS Code. Fixed: the error now surfaces via an explicit `output` event + `terminated`, with a regression test.
+- End-of-program detection via **periodic dashboard polling** missed fast scripts (an entire program can run in under 50ms, before the first poll even happens) — replaced with an **explicit signal sent by the script itself right before it ends**, deterministic and instant, no more timing dependency.
+- A malformed checkpoint connection (a leftover from a previous session that wasn't fully stopped) used to crash the **entire** rendezvous loop instead of simply being ignored — isolated into a per-connection handler with its own error handling.
+- On session disconnect, the robot program wasn't explicitly stopped on the controller side, which could leave a script running and interfere with the next session — fixed (explicit `dashboard stop` on cleanup).
 
-**Détail technique de l'arrêt sécurisé et de l'édition de variables (2026-09-13)** : deux fonctions URScript que j'avais initialement supposées (`socket_read_byte`) n'existaient pas — trouvé via le vrai log d'erreur du contrôleur (`/ursim/URControl.log` dans le conteneur, bien plus fiable que `docker logs` pour ce genre d'erreur), puis confirmé les bonnes fonctions (`socket_read_byte_list`, `socket_read_ascii_float`) dans le manuel officiel Universal Robots avant d'intégrer.
+**Technical detail on the safe stop and variable editing (2026-09-13)**: two URScript functions I initially assumed existed (`socket_read_byte`) actually didn't — found via the controller's real error log (`/ursim/URControl.log` inside the container, far more reliable than `docker logs` for this kind of error), then confirmed the correct functions (`socket_read_byte_list`, `socket_read_ascii_float`) in the official Universal Robots manual before integrating them.
 
-Reste hors scope (voir "Prochaines étapes") : édition de variables non-numériques, publication Marketplace.
+Out of scope for now (see "Next steps"): non-numeric variable editing, Marketplace publication.
 
-## Environnement de test (URSim)
+## Test environment (URSim)
 
-Tout est contenu dans ce dossier — rien n'est installé ailleurs sur la machine.
+Everything is contained in this folder — nothing is installed elsewhere on the machine.
 
 ```bash
 cd docker
-docker compose up -d      # démarre URSim (dashboard 29999, primary/secondary/realtime/RTDE 30001-30004, PolyScope web sur http://localhost:6080/vnc.html)
-docker compose down       # arrête et nettoie le conteneur
+docker compose up -d      # starts URSim (dashboard 29999, primary/secondary/realtime/RTDE 30001-30004, PolyScope web at http://localhost:6080/vnc.html)
+docker compose down       # stops and removes the container
 ```
 
-Les programmes/URCaps persistés vivent dans `ursim-data/` (ignoré par git). Validé le 2026-09-13 : tous les ports de contrôle répondent correctement une fois le conteneur démarré (~1-2 min de démarrage interne).
+Persisted programs/URCaps live in `ursim-data/` (git-ignored). Validated on 2026-09-13: all control ports respond correctly once the container is up (~1-2 min internal startup).
 
-## Structure du projet
+## Project structure
 
 ```
 urscript-debugger/
-├── docs/               # étude de marché + faisabilité technique
-├── docker/             # docker-compose.yml pour URSim (environnement de test)
-├── server/             # logique Python : instrumentation + serveur DAP
-│   ├── instrument.py   # insère checkpoint() dans un .script
-│   ├── dap_server.py   # adaptateur DAP, spawné par l'extension VS Code
-│   └── .venv/          # environnement Python local au projet
-├── extension/          # extension VS Code (TypeScript)
+├── docs/               # market research + technical feasibility
+├── docker/             # docker-compose.yml for URSim (test environment)
+├── server/             # Python logic: instrumentation + DAP server
+│   ├── instrument.py   # inserts checkpoint() into a .script
+│   ├── dap_server.py   # DAP adapter, spawned by the VS Code extension
+│   └── .venv/          # project-local Python environment
+├── extension/          # VS Code extension (TypeScript)
 │   ├── src/extension.ts
-│   ├── src/test/       # suite de tests E2E (@vscode/test-electron)
-│   ├── .vscodeignore   # exclut sources/tests du .vsix packagé
+│   ├── src/test/       # E2E test suite (@vscode/test-electron)
+│   ├── .vscodeignore   # excludes sources/tests from the packaged .vsix
 │   └── package.json
-├── test-scripts/       # fichiers .script d'exemple (dont motion_test.script à mouvement réel, second_test.script pour le multi-fichiers)
-└── tests/              # validation automatisée bas niveau (test_dap_flow.py, test_motion_safety.py)
+├── test-scripts/       # example .script files (including motion_test.script with real motion, second_test.script for multi-file)
+└── tests/              # low-level automated validation (test_dap_flow.py, test_motion_safety.py)
 ```
 
-## Faire tourner les tests automatisés (moi ou toi)
+## Running the automated tests (me or you)
 
 ```bash
-# 1. Démarrer URSim + allumer le robot (voir "Comment tester" ci-dessous, étape 1)
-# 2. Test E2E réel dans une vraie fenêtre VS Code (ouvre et referme une fenêtre automatiquement) :
+# 1. Start URSim + power on the robot (see "How to test" below, step 1)
+# 2. Real E2E test in an actual VS Code window (opens and closes a window automatically):
 cd extension && npm test
 ```
 
-`npm test` compile, télécharge une vraie copie de VS Code la première fois (~330 Mo, mise en cache dans `extension/.vscode-test/`, ignoré par git), l'ouvre avec l'extension chargée, exécute les 5 scénarios, et referme la fenêtre (~3s d'exécution des tests une fois VS Code démarré). C'est ce que j'utilise pour vérifier moi-même un changement avant de te dire que ça marche, plutôt que de te demander de tester à chaque fois.
+`npm test` compiles, downloads a real copy of VS Code the first time (~330 MB, cached in `extension/.vscode-test/`, git-ignored), opens it with the extension loaded, runs the 5 scenarios, and closes the window (~3s of test execution once VS Code is up). This is what I use to verify a change myself before telling you it works, instead of asking you to test every time.
 
-## Comment tester dans VS Code (la partie qui a besoin de toi)
+## How to test in VS Code (the part that needs you)
 
-1. `cd docker && docker compose up -d` — attends ~1-2 min, puis démarre le robot simulé :
+1. `cd docker && docker compose up -d` — wait ~1-2 min, then power on the simulated robot:
    ```bash
    python3 -c "
    import socket, time
@@ -105,30 +105,32 @@ cd extension && npm test
    print(s.recv(4096).decode())
    "
    ```
-2. Ouvre le dossier `extension/` dans VS Code, appuie sur **F5** — ça ouvre une seconde fenêtre VS Code ("Extension Development Host") avec l'extension chargée.
-3. Dans cette nouvelle fenêtre, ouvre le dossier `test-scripts/` (il contient déjà un `.vscode/launch.json` prêt à l'emploi).
-4. Ouvre `counter_clean.script`, clique dans la marge à gauche de la ligne `counter = counter + 1` (ligne 5) pour poser un point d'arrêt.
-5. Lance le débogage (F5, ou le triangle vert dans l'onglet Run and Debug).
-6. Tu devrais voir l'exécution s'arrêter à cette ligne, la variable `counter` apparaître dans le panneau Variables, et pouvoir cliquer "Continue" pour avancer à l'itération suivante — ou "Step Over" pour avancer ligne par ligne, y compris sur des lignes sans breakpoint.
+2. Open the `extension/` folder in VS Code, press **F5** — this opens a second VS Code window ("Extension Development Host") with the extension loaded.
+3. In that new window, open the `test-scripts/` folder (it already has a `.vscode/launch.json` ready to go).
+4. Open `counter_clean.script`, click in the gutter to the left of the `counter = counter + 1` line (line 5) to set a breakpoint.
+5. Start debugging (F5, or the green triangle in the Run and Debug tab).
+6. You should see execution stop at that line, the `counter` variable appear in the Variables panel, and be able to click "Continue" to move to the next iteration — or "Step Over" to advance line by line, including on lines without a breakpoint.
 
-(Optionnel — je fais déjà cette vérification moi-même via `npm test` avant de te dire qu'un changement fonctionne, inutile de la refaire sauf si tu veux voir l'interface de tes propres yeux.)
+(Optional — I already run this check myself via `npm test` before telling you a change works; no need to redo it unless you want to see the UI with your own eyes.)
 
 ## Packaging
 
 ```bash
 cd extension
-npx @vscode/vsce package --allow-missing-repository
+npx @vscode/vsce package
 ```
 
-Produit `urscript-debugger-0.0.1.vsix` (~3 Ko, zéro dépendance runtime — seul `package.json` + `out/extension.js` sont embarqués grâce à `.vscodeignore`). Installable manuellement dans VS Code via "Extensions" → "..." → "Install from VSIX...", ou `code --install-extension urscript-debugger-0.0.1.vsix`.
+Produces `urscript-debugger-<version>.vsix` (a few KB, zero runtime dependency — only `package.json` + `out/extension.js` are bundled thanks to `.vscodeignore`). Installable manually in VS Code via "Extensions" → "..." → "Install from VSIX...", or `code --install-extension urscript-debugger-<version>.vsix`.
 
-Avant publication publique sur le Marketplace, il manque encore : un vrai `repository` dans `package.json` (une fois le code poussé sur un dépôt Git distant), un fichier `LICENSE`, une icône, et le modèle de licence freemium (voir discussion précédente sur la monétisation).
+## Publishing
 
-## Prochaines étapes (ce qui reste délibérément hors scope pour l'instant)
+See `docs/publishing.md` for the full step-by-step guide (publisher account, access token, publishing itself).
 
-- Édition de variables non-numériques (chaînes, listes, poses) — nécessiterait un protocole plus riche que `socket_read_ascii_float`.
-- Publication Marketplace (reste à faire : `repository` réel dans `package.json`, `LICENSE`, icône) + modèle de licence freemium.
+## Next steps (deliberately out of scope for now)
 
-## Statut
+- Non-numeric variable editing (strings, lists, poses) — would need a richer protocol than `socket_read_ascii_float`.
+- Marketplace freemium licensing model (license-key gated premium features).
 
-Extension complète et fonctionnelle sur toute la portée initialement visée : breakpoints, pas-à-pas, arrêt sécurisé du mouvement, inspection ET édition de variables en direct, multi-fichiers — validée automatiquement de bout en bout via une vraie fenêtre VS Code pilotée en test (5 scénarios), empaquetée en `.vsix` installable. Prête pour un usage réel ; il ne reste que la publication Marketplace comme étape commerciale.
+## Status
+
+A complete, functional extension covering the full scope originally targeted: breakpoints, stepping, safe motion stop, live variable inspection AND editing, multi-file support — validated automatically end-to-end through a real, test-driven VS Code window (5 scenarios), packaged as an installable `.vsix`. Ready for real-world use; Marketplace publication is now underway.
