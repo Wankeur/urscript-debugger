@@ -3,12 +3,12 @@
   "displayName": "URScript Debugger",
   "description": "Débogueur avec points d'arrêt, exécution pas-à-pas et inspection/édition de variables pour URScript brut (Universal Robots)",
   "version": "0.1.0",
-  "publisher": "TODO-choisir-un-publisher-id",
+  "publisher": "DAEDALEautomation",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "TODO-url-du-depot-git"
+    "url": "https://github.com/Wankeur/urscript-debugger.git"
   },
   "keywords": [
     "urscript",
