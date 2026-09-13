@@ -7,3 +7,5 @@ node_modules/
 ursim-data/
 extension/out/
 extension/.vscode-test/
+extension/server/
+docs/publishing.md
