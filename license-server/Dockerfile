@@ -7,5 +7,6 @@ RUN chown -R licenseserver:licenseserver /app
 USER licenseserver
 
 ENV LICENSE_DB_PATH=/data/licenses.db
+ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 CMD ["python3", "server.py"]
