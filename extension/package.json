@@ -46,8 +46,8 @@
       "properties": {
         "urscript-debugger.licenseServerUrl": {
           "type": "string",
-          "default": "",
-          "description": "License validation server URL (leave empty during development; premium features stay locked without it unless a cached valid license exists)."
+          "default": "https://wankeurdskt.tail25cbcb.ts.net",
+          "description": "License validation server URL."
         },
         "urscript-debugger.__testForceLicensed": {
           "type": "boolean",

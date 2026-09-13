@@ -9,3 +9,5 @@ extension/out/
 extension/.vscode-test/
 extension/server/
 docs/publishing.md
+license-server/data/
+license-server/DEPLOY.md
