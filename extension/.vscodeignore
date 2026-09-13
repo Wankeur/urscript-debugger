@@ -9,3 +9,4 @@ node_modules/**
 *.vsix
 generate_icon.py
 scripts/**
+server/__pycache__/**

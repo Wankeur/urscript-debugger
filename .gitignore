@@ -8,6 +8,8 @@ ursim-data/
 extension/out/
 extension/.vscode-test/
 extension/server/
+extension/README.md
+extension/LICENSE
 docs/publishing.md
 license-server/data/
 license-server/DEPLOY.md

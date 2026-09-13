@@ -2,7 +2,7 @@
   "name": "urscript-debugger",
   "displayName": "URScript Debugger",
   "description": "A real debugger for raw URScript (Universal Robots): breakpoints, stepping, live variable inspection and editing",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "DAEDALEautomation",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "icon.png",
