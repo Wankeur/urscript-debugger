@@ -14,6 +14,15 @@ PolyScope has had native breakpoints since v5.6, but only for programs built in 
 - **Multi-file projects** — breakpoints are tracked per file; only the launched file executes.
 - **Safe by design** — a breakpoint only pauses the robot after it has been brought to a full, controlled stop (`stopj`). Nothing is ever frozen mid-motion, and a pass-through checkpoint (no breakpoint hit) never touches motion in progress — so blended moves (`r=...`) aren't disturbed.
 
+## Free vs. Premium
+
+The extension is free to install and use, with one limit: **1 active breakpoint** and read-only variable inspection. A one-time license (39€, lifetime) unlocks:
+
+- Unlimited breakpoints
+- Live variable editing (`setVariable`) — change a value mid-run and see it actually affect execution
+
+Run and step controls (Continue, Step Over/Into/Out) are always free, no limit. Use the **"URScript Debugger: Enter License Key"** command (Command Palette) to activate a purchased license.
+
 ## Requirements
 
 - VS Code 1.85 or newer.
@@ -50,7 +59,7 @@ Every executable line is instrumented with a lightweight checkpoint that asks, o
 
 ## Development
 
-This repository contains the full source: the VS Code extension (`extension/`), the Python DAP server (`server/`), a Dockerized URSim test environment (`docker/`), and an automated test suite covering the debugger end-to-end against a real simulated robot (`tests/`, `extension/src/test/`). See `docs/feasibility.md` and `docs/market-research.md` for the background behind the design choices.
+This repository contains the full source: the VS Code extension (`extension/`), the Python DAP server (`server/`), the license validation server (`license-server/`), a Dockerized URSim test environment (`docker/`), and an automated test suite covering the debugger end-to-end against a real simulated robot (`tests/`, `extension/src/test/`). See `docs/feasibility.md` and `docs/market-research.md` for the background behind the design choices.
 
 To run the tests yourself: start URSim (`cd docker && docker compose up -d`), then `cd extension && npm test`.
 

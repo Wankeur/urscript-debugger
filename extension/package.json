@@ -2,7 +2,7 @@
   "name": "urscript-debugger",
   "displayName": "URScript Debugger",
   "description": "A real debugger for raw URScript (Universal Robots): breakpoints, stepping, live variable inspection and editing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "DAEDALEautomation",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "icon.png",
@@ -25,10 +25,37 @@
     "Debuggers"
   ],
   "activationEvents": [
-    "onDebug"
+    "onDebug",
+    "onCommand:urscript-debugger.enterLicenseKey",
+    "onCommand:urscript-debugger.clearLicenseKey"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "urscript-debugger.enterLicenseKey",
+        "title": "URScript Debugger: Enter License Key"
+      },
+      {
+        "command": "urscript-debugger.clearLicenseKey",
+        "title": "URScript Debugger: Remove License Key"
+      }
+    ],
+    "configuration": {
+      "title": "URScript Debugger",
+      "properties": {
+        "urscript-debugger.licenseServerUrl": {
+          "type": "string",
+          "default": "",
+          "description": "License validation server URL (leave empty during development; premium features stay locked without it unless a cached valid license exists)."
+        },
+        "urscript-debugger.__testForceLicensed": {
+          "type": "boolean",
+          "description": "Internal, used only by the E2E test suite to simulate a licensed/unlicensed state. Not meant to be set manually.",
+          "scope": "application"
+        }
+      }
+    },
     "breakpoints": [
       {
         "language": "urscript"

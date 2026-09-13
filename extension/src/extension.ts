@@ -1,20 +1,34 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import { checkLicense, clearLicenseKey, promptForLicenseKey } from "./license";
 
 export function activate(context: vscode.ExtensionContext) {
-  const factory = new UrscriptDebugAdapterDescriptorFactory(context.extensionPath);
+  const factory = new UrscriptDebugAdapterDescriptorFactory(context);
   context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("urscript", factory));
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("urscript-debugger.enterLicenseKey", () => promptForLicenseKey(context))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("urscript-debugger.clearLicenseKey", async () => {
+      await clearLicenseKey(context);
+      vscode.window.showInformationMessage("License removed.");
+    })
+  );
 }
 
 class UrscriptDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
-  constructor(private readonly extensionPath: string) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
-  createDebugAdapterDescriptor(
+  async createDebugAdapterDescriptor(
     _session: vscode.DebugSession
-  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    const scriptPath = path.join(this.extensionPath, "server", "dap_server.py");
+  ): Promise<vscode.DebugAdapterDescriptor> {
+    const scriptPath = path.join(this.context.extensionPath, "server", "dap_server.py");
     const pythonPath = process.platform === "win32" ? "python" : "python3";
-    return new vscode.DebugAdapterExecutable(pythonPath, [scriptPath]);
+    const licensed = await checkLicense(this.context);
+    return new vscode.DebugAdapterExecutable(pythonPath, [scriptPath], {
+      env: { ...process.env, URSCRIPT_LICENSED: licensed ? "1" : "0" } as { [key: string]: string },
+    });
   }
 }
 

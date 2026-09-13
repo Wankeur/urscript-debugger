@@ -10,9 +10,14 @@ interface CapturedMessage {
 }
 
 suite("URScript Debugger E2E", () => {
-  setup(() => {
+  setup(async () => {
     // Isolation entre tests : les breakpoints posés dans un test persistent sinon dans le workspace.
     vscode.debug.removeBreakpoints(vscode.debug.breakpoints);
+    // Par défaut les tests valident les fonctionnalités complètes (licence simulée active) ;
+    // le test de bridage gratuit ci-dessous désactive explicitement ce flag.
+    await vscode.workspace
+      .getConfiguration("urscript-debugger")
+      .update("__testForceLicensed", true, vscode.ConfigurationTarget.Global);
   });
 
   test("plusieurs breakpoints consécutifs avec variable visible à chaque arrêt", async function () {
@@ -399,6 +404,94 @@ suite("URScript Debugger E2E", () => {
     } finally {
       trackerDisposable.dispose();
       await vscode.commands.executeCommand("workbench.action.debug.stop");
+    }
+  });
+
+  test("free tier: limited to 1 breakpoint and setVariable is blocked without a license", async function () {
+    this.timeout(30000);
+
+    await vscode.workspace
+      .getConfiguration("urscript-debugger")
+      .update("__testForceLicensed", false, vscode.ConfigurationTarget.Global);
+
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    assert.ok(workspaceFolder, "No workspace open");
+    const scriptUri = vscode.Uri.joinPath(workspaceFolder.uri, "counter_clean.script");
+
+    // Deux breakpoints demandés (lignes 3 et 5) — un seul devrait être accepté en gratuit.
+    vscode.debug.addBreakpoints([
+      new vscode.SourceBreakpoint(new vscode.Location(scriptUri, new vscode.Position(2, 0))),
+      new vscode.SourceBreakpoint(new vscode.Location(scriptUri, new vscode.Position(4, 0))),
+    ]);
+
+    const messages: any[] = [];
+    const stoppedEvents: any[] = [];
+
+    const trackerDisposable = vscode.debug.registerDebugAdapterTrackerFactory("urscript", {
+      createDebugAdapterTracker() {
+        return {
+          onDidSendMessage: (m: any) => {
+            messages.push(m);
+            if (m.type === "event" && m.event === "stopped") stoppedEvents.push(m);
+          },
+        };
+      },
+    });
+
+    const started = await vscode.debug.startDebugging(workspaceFolder, {
+      type: "urscript",
+      request: "launch",
+      name: "Test E2E - free tier",
+      program: scriptUri.fsPath,
+      ursimHost: "127.0.0.1",
+    });
+    assert.ok(started, "startDebugging failed");
+    const session = vscode.debug.activeDebugSession;
+    assert.ok(session, "No active debug session");
+
+    async function waitFor(predicate: () => boolean, timeoutMs: number): Promise<void> {
+      const deadline = Date.now() + timeoutMs;
+      while (!predicate()) {
+        if (Date.now() > deadline) throw new Error("Timeout waiting for condition.");
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+
+    try {
+      await waitFor(() => messages.some((m) => m.type === "response" && m.command === "setBreakpoints"), 15000);
+      const resp = messages.find((m) => m.type === "response" && m.command === "setBreakpoints");
+      const verifiedCount = resp.body.breakpoints.filter((b: any) => b.verified).length;
+      assert.strictEqual(verifiedCount, 1, "Free tier should only verify 1 breakpoint");
+      const unverified = resp.body.breakpoints.find((b: any) => !b.verified);
+      assert.ok(unverified.message?.includes("license"), "Unverified breakpoint should explain the license limit");
+
+      await waitFor(() => stoppedEvents.length >= 1, 15000);
+
+      // Tenter d'éditer une variable doit échouer proprement (message clair), pas planter.
+      const threadsResp = await session!.customRequest("threads");
+      const stResp = await session!.customRequest("stackTrace", { threadId: threadsResp.threads[0].id });
+      const scopesResp = await session!.customRequest("scopes", { frameId: stResp.stackFrames[0].id });
+
+      let setVarError: any = null;
+      try {
+        await session!.customRequest("setVariable", {
+          variablesReference: scopesResp.scopes[0].variablesReference,
+          name: "counter",
+          value: "99",
+        });
+      } catch (e) {
+        setVarError = e;
+      }
+      assert.ok(setVarError, "setVariable should be rejected without a license");
+      console.log("Free tier correctly blocked setVariable:", setVarError?.message);
+
+      await vscode.commands.executeCommand("workbench.action.debug.continue");
+    } finally {
+      trackerDisposable.dispose();
+      await vscode.commands.executeCommand("workbench.action.debug.stop");
+      await vscode.workspace
+        .getConfiguration("urscript-debugger")
+        .update("__testForceLicensed", true, vscode.ConfigurationTarget.Global);
     }
   });
 });

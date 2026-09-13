@@ -20,6 +20,7 @@ seul scope "Locals".
 
 import json
 import logging
+import os
 import socket
 import sys
 import threading
@@ -52,6 +53,7 @@ class DAPServer:
         self.rendezvous_socket: socket.socket | None = None
         self.terminated = False
         self.step_mode = False  # True: le prochain checkpoint doit arrêter, même sans breakpoint explicite
+        self.licensed = os.environ.get("URSCRIPT_LICENSED") == "1"
 
     # --- framing DAP (Content-Length headers + JSON) ---
     def send(self, message: dict) -> None:
@@ -135,8 +137,26 @@ class DAPServer:
         args = req["arguments"]
         path = args["source"]["path"]
         lines = [bp["line"] for bp in args.get("breakpoints", [])]
-        self.breakpoints[path] = set(lines)
-        self.send_response(req, body={"breakpoints": [{"verified": True, "line": l} for l in lines]})
+
+        if self.licensed:
+            allowed = set(lines)
+        else:
+            allowed = set(lines[:1])  # version gratuite : un seul breakpoint actif
+
+        self.breakpoints[path] = allowed
+        body_breakpoints = []
+        for l in lines:
+            if l in allowed:
+                body_breakpoints.append({"verified": True, "line": l})
+            else:
+                body_breakpoints.append(
+                    {
+                        "verified": False,
+                        "line": l,
+                        "message": "Free version is limited to 1 breakpoint. A license unlocks unlimited breakpoints.",
+                    }
+                )
+        self.send_response(req, body={"breakpoints": body_breakpoints})
 
     def cmd_configurationDone(self, req: dict) -> None:
         self.send_response(req)
@@ -169,24 +189,30 @@ class DAPServer:
         self.send_response(req, body={"variables": variables})
 
     def cmd_setVariable(self, req: dict) -> None:
+        if not self.licensed:
+            self.send_response(
+                req, success=False, message="Editing variables is a premium feature. Enter a license key to unlock it."
+            )
+            return
+
         args = req["arguments"]
         name = args["name"]
         raw_value = args["value"]
 
         if self.current_hit is None or self.pending_conn is None:
-            self.send_response(req, success=False, message="Le programme n'est pas actuellement en pause.")
+            self.send_response(req, success=False, message="The program is not currently paused.")
             return
 
         names = list(self.current_hit["vars"].keys())
         if name not in names:
-            self.send_response(req, success=False, message=f"Variable inconnue à ce point du programme : {name}")
+            self.send_response(req, success=False, message=f"Unknown variable at this point in the program: {name}")
             return
 
         try:
             value = float(raw_value)
         except ValueError:
             self.send_response(
-                req, success=False, message="Seules les valeurs numériques sont éditables pour l'instant."
+                req, success=False, message="Only numeric values are editable for now."
             )
             return
 
