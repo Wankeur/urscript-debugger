@@ -1,0 +1,114 @@
+{
+  "name": "urscript-debugger",
+  "displayName": "URScript Debugger",
+  "description": "Débogueur avec points d'arrêt, exécution pas-à-pas et inspection/édition de variables pour URScript brut (Universal Robots)",
+  "version": "0.1.0",
+  "publisher": "TODO-choisir-un-publisher-id",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "TODO-url-du-depot-git"
+  },
+  "keywords": [
+    "urscript",
+    "universal robots",
+    "robot",
+    "cobot",
+    "debugger",
+    "ursim"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onDebug"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "breakpoints": [
+      {
+        "language": "urscript"
+      }
+    ],
+    "languages": [
+      {
+        "id": "urscript",
+        "extensions": [
+          ".script"
+        ],
+        "aliases": [
+          "URScript"
+        ]
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "urscript",
+        "label": "URScript Debug",
+        "languages": [
+          "urscript"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Chemin vers le fichier .script à déboguer",
+                "default": "${file}"
+              },
+              "ursimHost": {
+                "type": "string",
+                "description": "Adresse IP d'URSim ou du contrôleur robot",
+                "default": "127.0.0.1"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "urscript",
+            "request": "launch",
+            "name": "Déboguer ce fichier URScript",
+            "program": "${file}",
+            "ursimHost": "127.0.0.1"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "URScript: Déboguer contre URSim",
+            "body": {
+              "type": "urscript",
+              "request": "launch",
+              "name": "Déboguer ce fichier URScript",
+              "program": "^\"\\${file}\"",
+              "ursimHost": "127.0.0.1"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^3.1.0",
+    "glob": "^13.0.6",
+    "mocha": "^12.0.1",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,8 @@
+def program():
+  textmsg("deuxieme script demarre")
+  local total = 0
+  local step = 5
+  total = total + step
+  textmsg("deuxieme script termine")
+end
+program()

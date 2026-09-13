@@ -1,0 +1,11 @@
+def program():
+  textmsg("programme demarre")
+  local counter = 0
+  while counter < 3:
+    counter = counter + 1
+    textmsg("counter incremente")
+    sync()
+  end
+  textmsg("programme termine")
+end
+program()

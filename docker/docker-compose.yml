@@ -1,0 +1,10 @@
+services:
+  ursim:
+    image: universalrobots/ursim_e-series
+    container_name: urscript-debugger-ursim
+    network_mode: host  # simplifie le dev : le conteneur voit 127.0.0.1 comme l'hôte,
+                         # donc le breakPoint() du script peut se connecter à notre
+                         # serveur de rendez-vous local sans configurer d'IP de pont Docker.
+    volumes:
+      - ../ursim-data/programs:/ursim/programs
+      - ../ursim-data/urcaps:/urcaps

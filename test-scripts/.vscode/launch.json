@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "urscript",
+      "request": "launch",
+      "name": "Déboguer ce fichier URScript",
+      "program": "${file}",
+      "ursimHost": "127.0.0.1"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+def program():
+  def breakPoint(label):
+    socket_open("127.0.0.1", 29998, "dbg")
+    socket_send_string(label, "dbg")
+    local resp = socket_read_string("dbg", "", "\n", False)
+    socket_close("dbg")
+  end
+
+  textmsg("programme demarre")
+  local counter = 0
+  while counter < 3:
+    counter = counter + 1
+    textmsg("counter avant breakpoint")
+    breakPoint("ligne_boucle")
+    textmsg("counter apres breakpoint")
+    sync()
+  end
+  textmsg("programme termine")
+end
+program()

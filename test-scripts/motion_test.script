@@ -1,0 +1,11 @@
+def program():
+  local counter = 0
+  while counter < 2:
+    counter = counter + 1
+    movej([0, -1.57, -1.0, -1.57, 0, 0], a=1.4, v=1.05, r=0.1)
+    movej([0, -1.57, 0, -1.57, 0, 0], a=1.4, v=1.05)
+    sync()
+  end
+  textmsg("programme termine")
+end
+program()
