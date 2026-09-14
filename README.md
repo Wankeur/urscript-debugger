@@ -2,6 +2,8 @@
 
 A real debugger for **raw URScript** in VS Code — breakpoints, step execution, and live variable inspection/editing for Universal Robots cobots.
 
+**[💳 Buy a premium license — 39€, lifetime](https://buy.stripe.com/4gMdRa3lb3yb4cLefn1ZS00)** &nbsp;|&nbsp; free to install, 1 breakpoint included — see [Free vs. Premium](#free-vs-premium)
+
 PolyScope has had native breakpoints since v5.6, but only for programs built in its graphical editor. If you write or send `.script` files directly — as an integrator, a ROS/External Control user, or a URCap developer — you've had no way to pause execution, inspect a variable, or step through your code. This extension fills that gap.
 
 ## Features
