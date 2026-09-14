@@ -2,7 +2,7 @@
   "name": "urscript-debugger",
   "displayName": "URScript Debugger",
   "description": "A real debugger for raw URScript (Universal Robots): breakpoints, stepping, live variable inspection and editing",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "DAEDALEautomation",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "icon.png",
@@ -27,7 +27,8 @@
   "activationEvents": [
     "onDebug",
     "onCommand:urscript-debugger.enterLicenseKey",
-    "onCommand:urscript-debugger.clearLicenseKey"
+    "onCommand:urscript-debugger.clearLicenseKey",
+    "onCommand:urscript-debugger.buyPremiumLicense"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -39,6 +40,10 @@
       {
         "command": "urscript-debugger.clearLicenseKey",
         "title": "URScript Debugger: Remove License Key"
+      },
+      {
+        "command": "urscript-debugger.buyPremiumLicense",
+        "title": "URScript Debugger: Buy Premium License (39€)"
       }
     ],
     "configuration": {

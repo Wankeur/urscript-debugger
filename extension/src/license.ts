@@ -3,6 +3,8 @@ import * as http from "http";
 import * as https from "https";
 import * as vscode from "vscode";
 
+export const PURCHASE_URL = "https://buy.stripe.com/4gMdRa3lb3yb4cLefn1ZS00";
+
 const SECRET_KEY = "urscript-debugger.licenseKey";
 const DEVICE_ID_KEY = "urscript-debugger.deviceId";
 const CACHE_VALID_KEY = "urscript-debugger.licenseCachedValid";
@@ -107,7 +109,26 @@ export async function checkLicense(context: vscode.ExtensionContext): Promise<bo
   return false;
 }
 
+export async function openPurchasePage(): Promise<void> {
+  await vscode.env.openExternal(vscode.Uri.parse(PURCHASE_URL));
+}
+
 export async function promptForLicenseKey(context: vscode.ExtensionContext): Promise<void> {
+  const choice = await vscode.window.showQuickPick(
+    [
+      { label: "$(key) I have a license key", action: "enter" as const },
+      { label: "$(globe) Buy a license (39€, lifetime)", action: "buy" as const },
+    ],
+    { placeHolder: "Activate URScript Debugger premium", ignoreFocusOut: true }
+  );
+  if (!choice) {
+    return;
+  }
+  if (choice.action === "buy") {
+    await openPurchasePage();
+    return;
+  }
+
   const key = await vscode.window.showInputBox({
     prompt: "Enter your URScript Debugger license key",
     placeHolder: "URSDBG-...",

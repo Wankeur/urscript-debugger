@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import { checkLicense, clearLicenseKey, promptForLicenseKey } from "./license";
+import { checkLicense, clearLicenseKey, openPurchasePage, promptForLicenseKey } from "./license";
 
 export function activate(context: vscode.ExtensionContext) {
   const factory = new UrscriptDebugAdapterDescriptorFactory(context);
@@ -14,6 +14,9 @@ export function activate(context: vscode.ExtensionContext) {
       await clearLicenseKey(context);
       vscode.window.showInformationMessage("License removed.");
     })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("urscript-debugger.buyPremiumLicense", () => openPurchasePage())
   );
 }
 

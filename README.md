@@ -21,7 +21,9 @@ The extension is free to install and use, with one limit: **1 active breakpoint*
 - Unlimited breakpoints
 - Live variable editing (`setVariable`) — change a value mid-run and see it actually affect execution
 
-Run and step controls (Continue, Step Over/Into/Out) are always free, no limit. Use the **"URScript Debugger: Enter License Key"** command (Command Palette) to activate a purchased license.
+Run and step controls (Continue, Step Over/Into/Out) are always free, no limit.
+
+**[→ Buy a license (39€, lifetime)](https://buy.stripe.com/4gMdRa3lb3yb4cLefn1ZS00)** — you'll receive your key by email within a minute of payment. Then use the **"URScript Debugger: Enter License Key"** command (Command Palette) to activate it, or run **"URScript Debugger: Buy Premium License"** directly from the Command Palette to open the checkout page.
 
 ## Requirements
 
