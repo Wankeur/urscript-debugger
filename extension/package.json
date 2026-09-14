@@ -22,7 +22,8 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Debuggers"
+    "Debuggers",
+    "Programming Languages"
   ],
   "activationEvents": [
     "onDebug",
@@ -73,8 +74,17 @@
           ".script"
         ],
         "aliases": [
-          "URScript"
-        ]
+          "URScript",
+          "urscript"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "urscript",
+        "scopeName": "source.urscript",
+        "path": "./syntaxes/urscript.tmLanguage.json"
       }
     ],
     "debuggers": [
