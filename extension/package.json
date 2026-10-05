@@ -2,7 +2,7 @@
   "name": "urscript-debugger",
   "displayName": "URScript Debugger",
   "description": "A real debugger for raw URScript (Universal Robots): breakpoints, stepping, live variable inspection and editing",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "DAEDALEautomation",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "icon.png",
@@ -50,14 +50,9 @@
     "configuration": {
       "title": "URScript Debugger",
       "properties": {
-        "urscript-debugger.licenseServerUrl": {
-          "type": "string",
-          "default": "https://daedale.eu",
-          "description": "License validation server URL."
-        },
         "urscript-debugger.__testForceLicensed": {
           "type": "boolean",
-          "description": "Internal, used only by the E2E test suite to simulate a licensed/unlicensed state. Not meant to be set manually.",
+          "description": "Internal, only read by the extension's own test suite. Has no effect in normal use.",
           "scope": "application"
         }
       }
