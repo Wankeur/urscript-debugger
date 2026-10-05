@@ -70,12 +70,15 @@ export async function clearLicenseKey(context: vscode.ExtensionContext): Promise
 /** Retourne true si une licence valide (ou en période de grâce hors-ligne) est active. */
 export async function checkLicense(context: vscode.ExtensionContext): Promise<boolean> {
   // Utilisé uniquement par la suite de tests E2E pour simuler un état licencié/gratuit
-  // sans dépendre d'un vrai serveur de licence.
-  const testForceLicensed = vscode.workspace
-    .getConfiguration("urscript-debugger")
-    .get<boolean>("__testForceLicensed");
-  if (testForceLicensed !== undefined) {
-    return testForceLicensed;
+  // sans dépendre d'un vrai serveur de licence. Ignoré hors des tests, sinon n'importe
+  // quel utilisateur pourrait débloquer le premium en cochant le réglage.
+  if (context.extensionMode === vscode.ExtensionMode.Test) {
+    const testForceLicensed = vscode.workspace
+      .getConfiguration("urscript-debugger")
+      .get<boolean>("__testForceLicensed");
+    if (testForceLicensed !== undefined) {
+      return testForceLicensed;
+    }
   }
 
   const key = await context.secrets.get(SECRET_KEY);
