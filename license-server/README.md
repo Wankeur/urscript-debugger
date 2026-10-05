@@ -1,6 +1,6 @@
 # license-server
 
-> **Moved.** Since extension v0.2.4 the license server runs on the DAEDALE website (`https://www.daedale.eu`, Netlify functions + Supabase, in the `wankeur-react-reborn` repo) with the same endpoints. This Python server is kept as the reference implementation only.
+> **Moved.** Since extension v0.2.4 the license server runs on the DAEDALE website (`https://daedale.eu`, Netlify functions + Supabase, in the `wankeur-react-reborn` repo) with the same endpoints. This Python server is kept as the reference implementation only.
 
 Minimal license validation server for urscript-debugger's premium features. Pure Python standard library — no dependencies to install.
 

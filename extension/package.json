@@ -52,7 +52,7 @@
       "properties": {
         "urscript-debugger.licenseServerUrl": {
           "type": "string",
-          "default": "https://www.daedale.eu",
+          "default": "https://daedale.eu",
           "description": "License validation server URL."
         },
         "urscript-debugger.__testForceLicensed": {
