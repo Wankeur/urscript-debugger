@@ -20,9 +20,7 @@ function getOrCreateDeviceId(context: vscode.ExtensionContext): string {
   return id;
 }
 
-function getLicenseServerUrl(): string {
-  return vscode.workspace.getConfiguration("urscript-debugger").get<string>("licenseServerUrl", "");
-}
+const LICENSE_SERVER_URL = "https://daedale.eu";
 
 function postJson(url: string, payload: object, timeoutMs = 4000): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -86,22 +84,19 @@ export async function checkLicense(context: vscode.ExtensionContext): Promise<bo
     return false;
   }
 
-  const serverUrl = getLicenseServerUrl();
   const deviceId = getOrCreateDeviceId(context);
 
-  if (serverUrl) {
-    try {
-      const resp = await postJson(`${serverUrl.replace(/\/$/, "")}/licenses/validate`, {
-        key,
-        device_id: deviceId,
-      });
-      const valid = resp?.valid === true;
-      await context.globalState.update(CACHE_VALID_KEY, valid);
-      await context.globalState.update(CACHE_CHECKED_AT_KEY, Date.now());
-      return valid;
-    } catch {
-      // Serveur injoignable : on retombe sur le cache (période de grâce), voir ci-dessous.
-    }
+  try {
+    const resp = await postJson(`${LICENSE_SERVER_URL}/licenses/validate`, {
+      key,
+      device_id: deviceId,
+    });
+    const valid = resp?.valid === true;
+    await context.globalState.update(CACHE_VALID_KEY, valid);
+    await context.globalState.update(CACHE_CHECKED_AT_KEY, Date.now());
+    return valid;
+  } catch {
+    // Serveur injoignable : on retombe sur le cache (période de grâce), voir ci-dessous.
   }
 
   const cachedValid = context.globalState.get<boolean>(CACHE_VALID_KEY, false);

@@ -50,11 +50,6 @@
     "configuration": {
       "title": "URScript Debugger",
       "properties": {
-        "urscript-debugger.licenseServerUrl": {
-          "type": "string",
-          "default": "https://daedale.eu",
-          "description": "License validation server URL."
-        },
         "urscript-debugger.__testForceLicensed": {
           "type": "boolean",
           "description": "Internal, only read by the extension's own test suite. Has no effect in normal use.",
